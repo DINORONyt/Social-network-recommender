@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ClassLibrary1
+﻿namespace SocialNetwork.Core
 {
-    internal class Recommendation
+    public class Recommendation
     {
+        public int CandidateId { get; set; }
+        public string CandidateName { get; set; }
+        public int MutualFriendsCount { get; set; }
+        public double ConnectivityCoefficient { get; set; }
     }
 }
