@@ -7,16 +7,43 @@ namespace SocialNetwork.Core
     public class NetworkManager
     {
         private readonly Dictionary<int, User> _users = new();
-        private readonly Random _random = new(42); // Фиксированный seed для воспроизводимости
+        private readonly Random _random = new(42);
+
+        // Список русских имён и фамилий
+        private readonly string[] _firstNames = {
+            "Александр", "Дмитрий", "Максим", "Сергей", "Андрей",
+            "Алексей", "Артём", "Илья", "Кирилл", "Михаил",
+            "Никита", "Матвей", "Роман", "Егор", "Арсений",
+            "Иван", "Денис", "Евгений", "Владислав", "Павел",
+            "Анна", "Мария", "Екатерина", "Анастасия", "Дарья",
+            "Александра", "Полина", "София", "Виктория", "Елизавета",
+            "Варвара", "Алиса", "Ксения", "Татьяна", "Юлия"
+        };
+
+        private readonly string[] _lastNames = {
+            "Иванов", "Смирнов", "Кузнецов", "Попов", "Васильев",
+            "Петров", "Соколов", "Михайлов", "Новиков", "Федоров",
+            "Морозов", "Волков", "Алексеев", "Лебедев", "Семенов",
+            "Егоров", "Павлов", "Козлов", "Степанов", "Николаев",
+            "Соловьёва", "Васильева", "Зайцева", "Павлова", "Михайлова",
+            "Новикова", "Федорова", "Морозова", "Волкова", "Алексеева"
+        };
 
         public int TotalUsers => _users.Count;
 
-        // Генерация тестовой сети (1000 пользователей, случайные связи)
         public void GenerateRandomNetwork(int userCount = 1000, double connectionProbability = 0.015)
         {
             _users.Clear();
+
+            // Генерация пользователей с русскими именами
             for (int i = 1; i <= userCount; i++)
-                _users[i] = new User(i, $"User_{i}");
+            {
+                string firstName = _firstNames[_random.Next(_firstNames.Length)];
+                string lastName = _lastNames[_random.Next(_lastNames.Length)];
+                string fullName = $"{lastName} {firstName}";
+
+                _users[i] = new User(i, fullName);
+            }
 
             var ids = _users.Keys.ToList();
             for (int i = 0; i < ids.Count; i++)
@@ -32,7 +59,6 @@ namespace SocialNetwork.Core
             }
         }
 
-        // Основная логика: поиск рекомендаций через BFS на расстоянии 2
         public List<Recommendation> GetTopRecommendations(int userId, int topN = 10)
         {
             if (!_users.ContainsKey(userId))
@@ -44,7 +70,6 @@ namespace SocialNetwork.Core
             var queue = new Queue<(int NodeId, int Distance)>();
             queue.Enqueue((userId, 0));
 
-            // BFS для поиска пользователей на расстоянии ровно 2 (друзья друзей)
             while (queue.Count > 0)
             {
                 var (current, dist) = queue.Dequeue();
@@ -66,16 +91,13 @@ namespace SocialNetwork.Core
                 }
             }
 
-            // Оценка кандидатов
             var recommendations = new List<Recommendation>();
             foreach (var candId in candidates)
             {
-                // Фильтрация: исключаем уже существующих друзей и самого пользователя
                 if (candId == userId || targetUser.Friends.Contains(candId))
                     continue;
 
                 var mutualCount = targetUser.Friends.Intersect(_users[candId].Friends).Count();
-                // Коэффициент связности: доля общих друзей от общего числа друзей кандидата
                 var coeff = mutualCount / (double)Math.Max(1, _users[candId].Friends.Count);
 
                 recommendations.Add(new Recommendation
@@ -83,19 +105,19 @@ namespace SocialNetwork.Core
                     CandidateId = candId,
                     CandidateName = _users[candId].Name,
                     MutualFriendsCount = mutualCount,
-                    ConnectivityCoefficient = coeff
+                    ConnectivityCoefficient = coeff,
+                    FriendsCount = _users[candId].Friends.Count
                 });
             }
 
-            // Ранжирование и возврат топ-N
             return recommendations
                 .OrderByDescending(r => r.MutualFriendsCount)
                 .ThenByDescending(r => r.ConnectivityCoefficient)
+                .ThenByDescending(r => r.FriendsCount)
                 .Take(topN)
                 .ToList();
         }
 
-        // Статистика по всей сети
         public NetworkStatistics CalculateGlobalStatistics(int topN = 10)
         {
             int totalRecs = 0;
@@ -122,7 +144,6 @@ namespace SocialNetwork.Core
             };
         }
 
-        // Вспомогательные методы для визуализации
         public User GetUser(int id) => _users.GetValueOrDefault(id);
         public IReadOnlyDictionary<int, User> GetAllUsers() => _users;
     }
