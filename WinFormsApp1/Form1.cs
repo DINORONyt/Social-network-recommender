@@ -21,10 +21,12 @@ namespace SocialNetwork.App
             // Инициализация сети при запуске
             _network.GenerateRandomNetwork(1000);
 
-            // Заполнение ComboBox
-            comboBoxUsers.DisplayMember = "Value.Name";
-            comboBoxUsers.ValueMember = "Value.Id";
-            comboBoxUsers.DataSource = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<int, User>>(_network.GetAllUsers().ToList());
+            // Заполнение ComboBox с использованием анонимного типа
+            comboBoxUsers.DisplayMember = "Name";
+            comboBoxUsers.ValueMember = "Id";
+            comboBoxUsers.DataSource = _network.GetAllUsers()
+                .Select(kvp => new { Id = kvp.Key, Name = kvp.Value.Name })
+                .ToList();
 
             // Выбор первого пользователя по умолчанию
             if (comboBoxUsers.Items.Count > 0)
@@ -34,6 +36,8 @@ namespace SocialNetwork.App
         private void btnGenerateRecs_Click(object sender, EventArgs e)
         {
             if (comboBoxUsers.SelectedValue == null) return;
+
+            // Теперь SelectedValue возвращает int корректно
             int selectedUserId = (int)comboBoxUsers.SelectedValue;
 
             try
@@ -87,7 +91,6 @@ namespace SocialNetwork.App
             int radiusRecs = 180;
 
             // 1. Рисуем связи текущего пользователя с друзьями
-            g.DrawLine(Pens.Black, cx, cy, cx, cy); // Центр
             var friends = targetUser.Friends.ToList();
             for (int i = 0; i < friends.Count; i++)
             {
@@ -100,18 +103,17 @@ namespace SocialNetwork.App
             // 2. Рисуем связи с рекомендованными кандидатами (пунктиром)
             foreach (var rec in _currentRecommendations)
             {
-                double angle = 2 * Math.PI * rec.MutualFriendsCount / 10; // Упрощённое позиционирование
+                double angle = 2 * Math.PI * rec.MutualFriendsCount / 10;
                 int rx = cx + (int)(radiusRecs * Math.Cos(angle));
                 int ry = cy + (int)(radiusRecs * Math.Sin(angle));
 
-                // Рисуем линию к ближайшему общему другу (визуально)
                 g.DrawLine(new Pen(Color.Orange, 2) { DashStyle = System.Drawing.Drawing2D.DashStyle.Dash }, cx, cy, rx, ry);
             }
 
             // 3. Рисуем узлы
             DrawNode(g, cx, cy, targetUser.Name, Color.Red, 20);
 
-            for (int i = 0; i < Math.Min(friends.Count, 12); i++) // Рисуем часть друзей, чтобы не перегружать
+            for (int i = 0; i < Math.Min(friends.Count, 12); i++)
             {
                 double angle = 2 * Math.PI * i / friends.Count;
                 int fx = cx + (int)(radiusFriends * Math.Cos(angle));
