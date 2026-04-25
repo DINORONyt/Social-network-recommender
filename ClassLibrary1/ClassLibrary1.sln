@@ -1,13 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36811.4 d17.14
+VisualStudioVersion = 17.14.36811.4
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SocialNetwork.Core", "SocialNetwork.Core.csproj", "{6449617F-8CBA-48D0-AD02-B94388C4293C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SocialNetwork.App", "..\WinFormsApp1\SocialNetwork.App.csproj", "{EF929DA1-B025-48B5-AF85-3FA9B4924B36}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestProject1", "..\TestProject1\TestProject1.csproj", "{A1A2C6E0-FEC4-4434-AB27-86B96F3CC40C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SocialNetwork.Tests", "..\TestProject1\SocialNetwork.Tests.csproj", "{A1A2C6E0-FEC4-4434-AB27-86B96F3CC40C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
