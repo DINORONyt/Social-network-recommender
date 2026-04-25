@@ -106,7 +106,7 @@ namespace SocialNetwork.App
 
         private void DataGridViewRecs_CellClick(object sender, DataGridViewCellEventArgs e)
         {
-            // Игнорируем клики по заголовкам
+            // Игнорируем клики по заголовкам и недопустимым ячейкам
             if (e.RowIndex < 0 || e.ColumnIndex < 0)
                 return;
 
@@ -114,11 +114,14 @@ namespace SocialNetwork.App
             {
                 var row = dataGridViewRecs.Rows[e.RowIndex];
 
-                // Проверяем, что есть данные
+                // Проверяем, есть ли привязанные данные
                 if (row.DataBoundItem == null)
                     return;
 
-                // Получаем имя кандидата из колонки "Candidate"
+                // Безопасное получение имени кандидата
+                // Используем индекс или имя колонки, но с проверкой
+                if (!dataGridViewRecs.Columns.Contains("Candidate")) return;
+
                 var candidateNameCell = row.Cells["Candidate"];
                 if (candidateNameCell.Value == null)
                     return;
@@ -132,17 +135,17 @@ namespace SocialNetwork.App
                 {
                     _selectedCandidateId = candidate.CandidateId;
                     ShowCommonFriends(candidate);
-                    pictureBoxGraph.Invalidate();
+                    pictureBoxGraph.Invalidate(); // Перерисовать граф для подсветки
                 }
                 else
                 {
-                    lblStatus.Text = "⚠ Кандидат не найден";
+                    lblStatus.Text = "⚠ Кандидат не найден в базе";
                 }
             }
             catch (Exception ex)
             {
-                lblStatus.Text = "⚠ Ошибка при выборе кандидата";
-                // В отладке можно раскомментировать:
+                lblStatus.Text = "⚠ Ошибка выбора";
+                // Для отладки можно раскомментировать следующую строку, чтобы увидеть текст ошибки:
                 // MessageBox.Show($"Ошибка: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -154,23 +157,44 @@ namespace SocialNetwork.App
                 flowLayoutPanelCommonFriends.Controls.Clear();
                 lblNoSelection.Visible = false;
 
-                var firstName = candidate.CandidateName.Split(' ')[0];
-                lblDetailsTitle.Text = $"👥 Общие с {firstName}";
-
-                var userId = (int)comboBoxUsers.SelectedValue;
-                var targetUser = _network.GetUser(userId);
-                var candidateUser = _network.GetUser(candidate.CandidateId);
-
-                if (targetUser == null || candidateUser == null)
+                // Получаем текущий ID пользователя из ComboBox
+                if (comboBoxUsers.SelectedValue == null)
                 {
                     lblNoSelection.Visible = true;
-                    lblNoSelection.Text = "Не удалось загрузить данные";
+                    lblNoSelection.Text = "Пользователь не выбран";
                     return;
                 }
 
-                var commonFriends = targetUser.Friends
-                    .Intersect(candidateUser.Friends)
-                    .ToList();
+                int userId = (int)comboBoxUsers.SelectedValue;
+
+                // Получаем объекты пользователей с проверкой
+                var targetUser = _network.GetUser(userId);
+                var candidateUser = _network.GetUser(candidate.CandidateId);
+
+                if (targetUser == null)
+                {
+                    lblNoSelection.Visible = true;
+                    lblNoSelection.Text = "Ошибка: текущий пользователь не найден";
+                    return;
+                }
+
+                if (candidateUser == null)
+                {
+                    lblNoSelection.Visible = true;
+                    lblNoSelection.Text = "Ошибка: кандидат не найден";
+                    return;
+                }
+
+                // Обновляем заголовок
+                var firstName = candidate.CandidateName.Split(' ')[0];
+                lblDetailsTitle.Text = $"👥 Общие с {firstName}";
+
+                // Находим общих друзей (пересечение множеств)
+                // Используем безопасное обращение к Friends (если вдруг свойство null, хотя в модели оно инициализировано)
+                var targetFriends = targetUser.Friends ?? new System.Collections.Generic.HashSet<int>();
+                var candidateFriends = candidateUser.Friends ?? new System.Collections.Generic.HashSet<int>();
+
+                var commonFriends = targetFriends.Intersect(candidateFriends).ToList();
 
                 if (commonFriends.Count == 0)
                 {
@@ -179,10 +203,11 @@ namespace SocialNetwork.App
                     return;
                 }
 
+                // Выводим список
                 foreach (var friendId in commonFriends)
                 {
                     var friend = _network.GetUser(friendId);
-                    if (friend == null) continue;
+                    if (friend == null) continue; // Пропускаем, если друг не найден
 
                     var lbl = new Label
                     {
@@ -192,8 +217,11 @@ namespace SocialNetwork.App
                         AutoSize = true,
                         Margin = new Padding(5, 3, 5, 3),
                         Cursor = Cursors.Hand,
-                        Tag = friendId // Сохраняем ID друга
+                        Tag = friendId
                     };
+
+                    // Можно добавить клик по другу для перехода к нему
+                    // lbl.Click += (s, e) => { ... }; 
 
                     flowLayoutPanelCommonFriends.Controls.Add(lbl);
                 }
@@ -202,10 +230,13 @@ namespace SocialNetwork.App
             }
             catch (Exception ex)
             {
-                lblStatus.Text = "⚠ Ошибка при загрузке общих друзей";
+                lblStatus.Text = "⚠ Ошибка загрузки данных";
                 flowLayoutPanelCommonFriends.Controls.Clear();
                 lblNoSelection.Visible = true;
-                lblNoSelection.Text = "Произошла ошибка";
+                lblNoSelection.Text = "Произошла ошибка при загрузке";
+
+                // Логирование ошибки (не показывать пользователю в продакшене)
+                // Console.WriteLine(ex.ToString());
             }
         }
 
